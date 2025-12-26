@@ -1,3 +1,4 @@
 models/**
 .vscode/**
 .env
+__pycache__
