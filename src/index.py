@@ -9,5 +9,8 @@ from main import main
 model_paths = getModel_paths()
 model_path = selectModel(model_paths)
 
-
-main(pipeline, model_path)
+try:
+    main(pipeline, model_path)
+except Exception as e:
+    print("An error occurred while running the main function:")
+    print(e)
