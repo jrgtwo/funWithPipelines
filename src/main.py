@@ -5,15 +5,15 @@ import accelerate
 
 from utils.divider import divider
 
-def main(pipeline, model_path, log):
+def main(pipeline, model_path, user_selected_task, log):
     torch.cuda.empty_cache()
 
     divider()
 
-    user_selected_task = selectTask()
+    new_user_selected_task = user_selected_task or selectTask()
 
     newPipeline = pipeline(
-        task=user_selected_task, 
+        task=new_user_selected_task, 
         model=model_path,
         tokenizer=(model_path), 
         dtype=(torch.bfloat16),
@@ -23,18 +23,26 @@ def main(pipeline, model_path, log):
 
     divider()
 
-    user_prompt = getUserPrompt(pipeline)
-
+   
+    # user_prompt = None
+    # if log:
+    #     user_prompt = log[0]['generated_text']+ '\n\n' + getUserPrompt(pipeline)
+    # else:
+    user_prompt = getUserPrompt(newPipeline)
+ 
     # Output:
     divider("Text Generation Started")
-    generatedText = newPipeline(user_prompt, max_new_tokens=250)
+    
+    generatedText = newPipeline(user_prompt, max_new_tokens=250, do_sample=True, top_p=0.9, temperature=0.7)
+    
     divider("Text Generation Complete")
 
     print(generatedText[0]["generated_text"])  
 
     divider()
     wait = input("Press Enter to continue...")
+    print(wait)
     divider()
     shouldContinue = True
     # main(pipeline, model_path)
-    return shouldContinue, generatedText
+    return shouldContinue, new_user_selected_task, generatedText

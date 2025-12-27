@@ -15,16 +15,16 @@ def setModel():
 # model_path = selectModel(model_paths)
 
 global _model_path
-def startApp(resetModel=True, log=[]):
+def startApp(resetModel=True, user_selected_task=None, log=[]):
     global _model_path
     if (resetModel == True):
 
         _model_path = setModel()
 
     try:
-        shouldContinue, log = main(pipeline, _model_path, log)
+        shouldContinue, user_selected_task, log = main(pipeline, _model_path, user_selected_task, log)
         if shouldContinue:
-            startApp(resetModel=False, log=log)
+            startApp(resetModel=False, user_selected_task=user_selected_task, log=log)
         else:
             startApp(resetModel=True)
     except Exception as e:
