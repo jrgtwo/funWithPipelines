@@ -3,7 +3,7 @@ from user_input.select_task import selectTask
 import torch
 import accelerate
 from transformers import pipeline
-from rich import print
+from rich import print as rprint
 from rich.prompt import Confirm
 from rich.text import Text
 from rich.panel import Panel
@@ -11,6 +11,8 @@ from rich.console import Console
 from utils.divider import divider
 from rich.json import JSON
 import json
+from rich.markdown import Markdown
+from rich.align import Align
 
 def main(pipeline, model_path, user_selected_task, log):
     torch.cuda.empty_cache()
@@ -29,17 +31,15 @@ def main(pipeline, model_path, user_selected_task, log):
             dtype=(torch.bfloat16),
             device_map="auto"
         )
+        divider(f"Current Task:  {Text(new_user_selected_task)}")
     else:
         newPipeline = pipeline
-    
-    divider(f"Current Task:  {Text(new_user_selected_task)}")
 
     user_prompt = getUserPrompt(newPipeline)
  
     # Output:
-    divider("Text Generation Started")
     try:
-        default_system_prompt = {"role": "system", "content": "I am a helpful assistant who is knowledgeable about space and the cosmos."}
+        default_system_prompt = {"role": "system", "content": "You are a friendly chatbot who always responds in the style of a mentor"}
 
         chat =  [default_system_prompt, {"role": "user", "content": user_prompt}] 
         if  user_selected_task:
@@ -52,16 +52,37 @@ def main(pipeline, model_path, user_selected_task, log):
         print(e)
         return False, new_user_selected_task, log, newPipeline
 
-    generatedText = newPipeline( max_new_tokens=250, do_sample=True, top_p=0.9, temperature=0.7, text_inputs=chat)
+    generatedText = newPipeline( max_new_tokens=50, do_sample=True, top_p=0.9, temperature=0.7, text_inputs=chat)
     
-    divider("Text Generation Complete")
-    print(Panel(json.dumps(generatedText[0]["generated_text"], indent=4), title="Generated Text", border_style="blue"))
+    rprint(
+        Align(
+            Panel(
+                user_prompt,
+                title="Prompt", 
+                border_style="blue", 
+                expand=False,
+            )
+        , align="left"
+        )
+    )
+    console.print(
+        Align(
+            Panel(
+                Markdown(generatedText[-1]["generated_text"][-1]['content']),
+                title="Generated Text (Markdown)", 
+                border_style="magenta", 
+                width=60
+            )
+        , align="right"
+        ), 
+        justify="right",
+       
+    )
 
-    print(" ")
     waitText = Text()
     waitText.append("Press Y to continue, N to exit...")
     waitText.stylize("bold green")
     shouldContinue = Confirm.ask()
-    print(" ")
-  
+    print("\033[A\033[K", end="\r")
+    
     return shouldContinue, new_user_selected_task, generatedText, newPipeline

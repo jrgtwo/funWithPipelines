@@ -29,7 +29,6 @@ def startApp(resetModel=True, user_selected_task=None, log=[], latestPipeline=No
             log=log
         )
 
-        print(f"Should Continue: {shouldContinue}")
         if shouldContinue:
             startApp(
                 resetModel=False, 
