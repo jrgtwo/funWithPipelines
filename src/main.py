@@ -60,7 +60,7 @@ def main(pipeline, model_path, user_selected_task, log):
                 user_prompt,
                 title="Prompt", 
                 border_style="blue", 
-                expand=False,
+                width=80
             )
         , align="left"
         )
@@ -71,7 +71,7 @@ def main(pipeline, model_path, user_selected_task, log):
                 Markdown(generatedText[-1]["generated_text"][-1]['content']),
                 title="Generated Text (Markdown)", 
                 border_style="magenta", 
-                width=60
+                width=80
             )
         , align="right"
         ), 
