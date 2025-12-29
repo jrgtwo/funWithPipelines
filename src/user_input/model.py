@@ -1,4 +1,6 @@
+
 from InquirerPy import prompt
+from utils.get_model_paths import getModel_paths
 
 def selectModel(model_paths):
     questions = [
@@ -13,3 +15,8 @@ def selectModel(model_paths):
     model_path = result["model_path"]
 
     return model_path
+
+def setModel():
+     model_paths = getModel_paths()
+     model_path = selectModel(model_paths)
+     return model_path
