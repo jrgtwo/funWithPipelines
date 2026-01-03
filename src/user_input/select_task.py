@@ -2,6 +2,8 @@ from InquirerPy import prompt
 
 def selectTask():
     tasks = [
+        'text-generation', 
+        'sentiment-analysis', 
         # 'audio-classification', 
         # 'automatic-speech-recognition', 
         # 'depth-estimation', 
@@ -19,11 +21,10 @@ def selectTask():
         # 'ner', 
         # 'object-detection', 
         # 'question-answering', 
-        # 'sentiment-analysis', 
         # 'summarization', 
         # 'table-question-answering', 
         # 'text-classification', 
-        'text-generation', 
+        
         # 'text-to-audio', 
         # 'text-to-speech', 
         # 'text2text-generation', 

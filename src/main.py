@@ -29,7 +29,7 @@ def main(pipeline, model_path, user_selected_task, log):
             task=new_user_selected_task,
             model=model_path,
             dtype=(torch.bfloat16),
-            device_map="auto"
+            device=0
         )
         divider(f"Current Task:  {Text(new_user_selected_task)}")
 

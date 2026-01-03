@@ -6,16 +6,18 @@ from rich.align import Align
 from rich.panel import Panel
 from rich.markdown import Markdown
 from user_input.enter_prompt import getUserPrompt
+from user_input.select_persona import select_persona
+
 from rich.console import Console
 from transformers import AutoTokenizer
 
 def textGenerationTask(pipeline, model_path, user_selected_task, new_user_selected_task, log):
     console = Console()
-
+    persona = select_persona()
     user_prompt = getUserPrompt()
-
+    
     try:
-        default_system_prompt = {"role": "system", "content": "You are a friendly chatbot who always responds in the style of a mentor"}
+        default_system_prompt = {"role": "system", "content": persona}
 
         chat =  [default_system_prompt, {"role": "user", "content": user_prompt}] 
         if  user_selected_task:
@@ -43,7 +45,7 @@ def textGenerationTask(pipeline, model_path, user_selected_task, new_user_select
     )
 
     generatedText = pipeline(
-        max_new_tokens=2048,
+        max_new_tokens=(16384 * 4),
         tokenizer=tokenizer,
         do_sample=True,
         top_p=0.9,
@@ -56,8 +58,7 @@ def textGenerationTask(pipeline, model_path, user_selected_task, new_user_select
         Align(
             Panel(
                 Markdown(generatedText[-1]["generated_text"][-1]['content']),
-                title="Generated Text (Markdown)", 
-                border_style="magenta", 
+                title="Generated Text (Markdown)",
                 width=80
             )
         , align="right"

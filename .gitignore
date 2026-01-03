@@ -1,4 +1,5 @@
 models/**
 .vscode/**
 .env
+/src/tasks/chat/personalities.py
 __pycache__
