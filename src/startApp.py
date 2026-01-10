@@ -1,9 +1,6 @@
 
 from transformers import pipeline
-import torch
 from main import main
-
-from utils.get_model_paths import getModel_paths
 
 from user_input.model import selectModel, setModel
 

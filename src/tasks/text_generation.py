@@ -13,9 +13,11 @@ from transformers import AutoTokenizer
 
 def textGenerationTask(pipeline, model_path, user_selected_task, new_user_selected_task, log):
     console = Console()
-    persona = select_persona()
+    persona = None
     user_prompt = getUserPrompt()
-    
+
+    if user_selected_task:
+        persona = select_persona()    
     try:
         default_system_prompt = {"role": "system", "content": persona}
 
@@ -24,11 +26,11 @@ def textGenerationTask(pipeline, model_path, user_selected_task, new_user_select
             transcript = log[0]['generated_text']
             transcript.append({"role": "user", "content": user_prompt})
             chat = transcript 
-
     except Exception as e:
         print("An error occurred while preparing the prompt:")
         print(e)
         return False, new_user_selected_task, log, pipeline
+
     
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     
@@ -45,10 +47,10 @@ def textGenerationTask(pipeline, model_path, user_selected_task, new_user_select
     )
 
     generatedText = pipeline(
-        max_new_tokens=(16384 * 4),
+        max_new_tokens=(1000000),
         tokenizer=tokenizer,
         do_sample=True,
-        top_p=0.9,
+        top_p=0.8,
         temperature=0.7,
         text_inputs=chat,
         pad_token_id=tokenizer.eos_token_id

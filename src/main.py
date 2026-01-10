@@ -1,18 +1,9 @@
-from user_input.enter_prompt import getUserPrompt
+from transformers import BitsAndBytesConfig
 from user_input.select_task import selectTask
 import torch
-import accelerate
-from transformers import pipeline
-from rich import print as rprint
 from rich.prompt import Confirm
 from rich.text import Text
-from rich.panel import Panel
-from rich.console import Console
 from utils.divider import divider
-from rich.json import JSON
-import json
-from rich.markdown import Markdown
-from rich.align import Align
 from tasks.text_generation import textGenerationTask
 
 def main(pipeline, model_path, user_selected_task, log):
@@ -25,11 +16,13 @@ def main(pipeline, model_path, user_selected_task, log):
 
     newPipeline = None
     if not user_selected_task:
+        quantization_config = BitsAndBytesConfig(load_in_8bit=True)
         newPipeline = pipeline(
             task=new_user_selected_task,
             model=model_path,
             dtype=(torch.bfloat16),
-            device=0
+            device=0,
+            model_kwargs={"quantization_config": quantization_config}
         )
         divider(f"Current Task:  {Text(new_user_selected_task)}")
 
