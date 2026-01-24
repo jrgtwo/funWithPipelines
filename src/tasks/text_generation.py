@@ -16,7 +16,7 @@ def textGenerationTask(pipeline, model_path, user_selected_task, new_user_select
     persona = None
     user_prompt = getUserPrompt()
 
-    if user_selected_task:
+    if not user_selected_task:
         persona = select_persona()    
     try:
         default_system_prompt = {"role": "system", "content": persona}
@@ -55,7 +55,7 @@ def textGenerationTask(pipeline, model_path, user_selected_task, new_user_select
         text_inputs=chat,
         pad_token_id=tokenizer.eos_token_id
     )
-    
+ 
     console.print(
         Align(
             Panel(
