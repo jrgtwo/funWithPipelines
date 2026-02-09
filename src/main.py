@@ -29,6 +29,7 @@ def main(pipeline, model_path, user_selected_task, log):
     else:
         newPipeline = pipeline
 
+    generatedText = None
     match new_user_selected_task:
         case 'text-generation':
            generatedText = textGenerationTask(newPipeline, model_path, user_selected_task, new_user_selected_task, log)
