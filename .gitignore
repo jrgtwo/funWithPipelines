@@ -4,3 +4,4 @@ models/**
 /src/tasks/chat/personalities.py
 __pycache__
 .idea/**
+/chats/**
