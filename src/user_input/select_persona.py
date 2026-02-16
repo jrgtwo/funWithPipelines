@@ -1,5 +1,5 @@
 from InquirerPy import prompt
-from tasks.chat.personalities import chat_personalities
+from chat.personalities import chat_personalities
 
 def select_persona():
     personas = chat_personalities()

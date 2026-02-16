@@ -34,12 +34,12 @@ def textGenerationTask(pipeline, model_path, user_selected_task, new_user_select
     
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     
-    rprint(
+    console.print(
         Align(
             Panel(
-                user_prompt,
-                title="Prompt", 
-                border_style="blue", 
+                Markdown(user_prompt),
+                title="Prompt",
+                border_style="blue",
                 width=80
             )
         , align="left"
@@ -47,7 +47,8 @@ def textGenerationTask(pipeline, model_path, user_selected_task, new_user_select
     )
 
     generatedText = pipeline(
-        max_new_tokens=(1000000),
+        max_new_tokens=4096,
+        max_length=None,
         tokenizer=tokenizer,
         do_sample=True,
         top_p=0.8,

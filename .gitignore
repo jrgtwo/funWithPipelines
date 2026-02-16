@@ -5,3 +5,5 @@ models/**
 __pycache__
 .idea/**
 /chats/**
+.claude
+/src/chat/personalities.py
