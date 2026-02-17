@@ -4,21 +4,19 @@ from rich.console import Console
 from rich.panel import Panel
 from prompt_toolkit import prompt as pt_prompt
 from prompt_toolkit.key_binding import KeyBindings
-
 console = Console()
 
 _bindings = KeyBindings()
 
 
-@_bindings.add("escape", "enter")
-@_bindings.add("c-j")  # Alt+Enter on some terminals
+@_bindings.add("escape", "enter")  # Escape then Enter for newline
 def _newline(event):
     event.current_buffer.insert_text("\n")
 
 
 def get_input():
-    """Multiline prompt: Enter sends, Alt+Enter / Escape+Enter adds a newline."""
-    return pt_prompt("You: ", key_bindings=_bindings, multiline=True)
+    """Prompt where Enter sends and Escape+Enter adds a newline."""
+    return pt_prompt("You: ", key_bindings=_bindings)
 
 
 def print_help():
@@ -32,7 +30,7 @@ def print_help():
         "/clear                — clear conversation history\n"
         "/help                 — show this message\n"
         "quit                  — exit\n\n"
-        "[dim]Tip: Press Escape+Enter for a new line[/dim]",
+        "[dim]Tip: Press Escape then Enter for a new line[/dim]",
         title="[bold cyan]Commands[/bold cyan]",
         border_style="cyan",
         padding=(1, 2),

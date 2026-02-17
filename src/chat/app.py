@@ -1,8 +1,12 @@
 """Main chat loop and entry point."""
 
+import threading
+
+import torch
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.rule import Rule
+from transformers import TextIteratorStreamer
 
 from .config import MODELS_DIR, parse_args
 from .ui import console, print_help, get_input
@@ -35,7 +39,7 @@ def main():
     console.print(Rule("[bold magenta]CLI Chat[/bold magenta]"))
     model_path = pick_model()
     persona = pick_persona()
-    chatbot, max_tokens, max_context = load_model(model_path, args)
+    model, tokenizer, max_tokens, max_context = load_model(model_path, args)
 
     system_msg = {"role": "system", "content": persona}
     messages = [system_msg]
@@ -55,9 +59,9 @@ def main():
             print_help()
             continue
         if stripped == "/model":
-            del chatbot
+            del model
             model_path = pick_model()
-            chatbot, max_tokens, max_context = load_model(model_path, args)
+            model, tokenizer, max_tokens, max_context = load_model(model_path, args)
             messages = [system_msg]
             attached_files.clear()
             pending_file_blocks.clear()
@@ -83,6 +87,10 @@ def main():
             console.print()
             continue
 
+        console.print(Rule("[bold blue]You[/bold blue]", style="blue"))
+        console.print(user_input.strip())
+        console.print()
+
         message, files_context, file_names = parse_input(user_input)
         if not message and not files_context:
             continue
@@ -103,22 +111,46 @@ def main():
         content = build_user_content(message, all_files_context)
         messages.append({"role": "user", "content": content})
 
-        trim_messages(messages, chatbot.tokenizer, max_context, max_tokens)
+        trim_messages(messages, tokenizer, max_context, max_tokens)
 
-        with console.status("[dim]Thinking...[/dim]"):
-            output = chatbot(messages, max_new_tokens=max_tokens, max_length=None)
+        encoded = tokenizer.apply_chat_template(
+            messages, return_tensors="pt", add_generation_prompt=True,
+            return_dict=True,
+        )
+        input_ids = encoded["input_ids"].to(model.device)
+        attention_mask = encoded["attention_mask"].to(model.device)
 
-        reply = output[0]["generated_text"][-1]["content"]
+        streamer = TextIteratorStreamer(
+            tokenizer, skip_prompt=True, skip_special_tokens=True,
+        )
+        gen_kwargs = dict(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            max_new_tokens=max_tokens,
+            pad_token_id=tokenizer.eos_token_id,
+            streamer=streamer,
+        )
+
+        def _generate():
+            with torch.inference_mode():
+                model.generate(**gen_kwargs)
+
+        thread = threading.Thread(target=_generate)
+
+        console.print(Rule("[bold green]Assistant[/bold green]", style="green"))
+        thread.start()
+        chunks = []
+        for text in streamer:
+            console.print(text, end="")
+            chunks.append(text)
+        thread.join()
+        del input_ids, attention_mask
+        torch.cuda.empty_cache()
+
+        reply = "".join(chunks)
         reply = reply.replace("\u0120", " ").replace("\u010a", "\n").replace("\u0109", "\t")
         messages.append({"role": "assistant", "content": reply})
-
-        console.print(Panel(
-            Markdown(reply, code_theme="monokai"),
-            title="[bold green]Assistant[/bold green]",
-            border_style="green",
-            padding=(1, 2),
-        ))
-        console.print()
+        console.print("\n")
 
     if len(messages) > 1:
         filepath = save_chat(messages)

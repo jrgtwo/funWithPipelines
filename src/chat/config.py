@@ -19,8 +19,8 @@ CHATS_DIR = PROJECT_ROOT / "chats"
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Chat with a local Hugging Face model")
-    parser.add_argument("--max-tokens", type=int, default=None, help="Max new tokens per response (default: model max)")
-    parser.add_argument("--device", default="cuda", help="Device to run on (cuda, cpu, mps)")
+    parser.add_argument("--max-tokens", type=int, default=None, help="Max new tokens per response (default: 1024)")
+    parser.add_argument("--device", default="cuda", help="Device map strategy (cuda, auto, cpu)")
     parser.add_argument("--quantize", choices=["4bit", "8bit", "none"], default="4bit",
                         help="Quantization level (default: 4bit)")
     return parser.parse_args()
