@@ -128,6 +128,8 @@ def main():
             attention_mask=attention_mask,
             max_new_tokens=max_tokens,
             pad_token_id=tokenizer.eos_token_id,
+            stop_strings=["USER:", "SYSTEM:"],
+            tokenizer=tokenizer,
             streamer=streamer,
         )
 
@@ -140,17 +142,18 @@ def main():
         console.print(Rule("[bold green]Assistant[/bold green]", style="green"))
         thread.start()
         chunks = []
-        for text in streamer:
-            console.print(text, end="")
-            chunks.append(text)
+        with console.status("[dim]Generating...[/dim]", spinner="dots"):
+            for text in streamer:
+                chunks.append(text)
         thread.join()
         del input_ids, attention_mask
         torch.cuda.empty_cache()
 
         reply = "".join(chunks)
         reply = reply.replace("\u0120", " ").replace("\u010a", "\n").replace("\u0109", "\t")
+        console.print(Markdown(reply))
         messages.append({"role": "assistant", "content": reply})
-        console.print("\n")
+        console.print()
 
     if len(messages) > 1:
         filepath = save_chat(messages)

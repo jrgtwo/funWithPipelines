@@ -11,12 +11,7 @@ def load_model(model_path, args):
     torch.cuda.empty_cache()
     console.print(f"\nLoading [bold cyan]{model_path}[/bold cyan] ({args.quantize})...")
 
-    model_kwargs = {}
-    try:
-        import flash_attn  # noqa: F401
-        model_kwargs["attn_implementation"] = "flash_attention_2"
-    except ImportError:
-        console.print("[dim]flash-attn not installed — using default attention.[/dim]")
+    model_kwargs = {"attn_implementation": "sdpa"}
     if args.quantize == "4bit":
         model_kwargs["quantization_config"] = BitsAndBytesConfig(
             load_in_4bit=True,
@@ -52,7 +47,7 @@ def load_model(model_path, args):
     if tokenizer.chat_template is None:
         tokenizer.chat_template = (
             "{% for message in messages %}"
-            "{{ message['role'].upper() + ':\n' + message['content'] + '\n\n' }}"
+            "{{ message['role'].upper() + ':\n' + message['content'] + eos_token + '\n\n' }}"
             "{% endfor %}"
             "{{ 'ASSISTANT:\n' }}"
         )
