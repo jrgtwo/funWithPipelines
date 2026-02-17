@@ -10,5 +10,6 @@ Create a `/models` folder to add your local models to
 `pip install -r requirements.txt`
 
 ### run
-`python src/index.py`
+`> cd src`
+`> python -m chat`
 
