@@ -98,10 +98,15 @@ def parse_input(raw):
     return message, files_context, file_names
 
 
-def build_user_content(message, files_context):
-    """Combine file context and user message into a single user content string."""
-    if files_context and message:
-        return f"{message}\n\nHere are the referenced files:\n\n{files_context}"
+def build_user_content(message, files_context, rag_context="", mcp_context=""):
+    """Combine file context, RAG context, MCP context, and user message into a single content string."""
+    parts = []
+    if message:
+        parts.append(message)
+    if rag_context:
+        parts.append(f"Use the following retrieved data to help answer:\n\n{rag_context}")
+    if mcp_context:
+        parts.append(f"Use the following tool results to help answer:\n\n{mcp_context}")
     if files_context:
-        return f"Here are the referenced files:\n\n{files_context}"
-    return message
+        parts.append(f"Here are the referenced files:\n\n{files_context}")
+    return "\n\n".join(parts) if parts else message
