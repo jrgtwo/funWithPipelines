@@ -76,7 +76,7 @@ async def lifespan(server: FastMCP):
     _log(f"Model ready on {_state.device}.")
 
     if _args.transport == "http":
-        _log(f"Listening at http://127.0.0.1:{_args.port}/mcp")
+        _log(f"Listening at http://localhost:{_args.port}/mcp")
     else:
         _log("Listening on stdio.")
 
@@ -222,7 +222,23 @@ def model_info() -> str:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     if _args.transport == "http":
+        from starlette.middleware import Middleware
+        from starlette.middleware.cors import CORSMiddleware
+
         _log(f"Starting HTTP transport on port {_args.port}.")
-        mcp.run("http", port=_args.port, show_banner=False)
+        mcp.run(
+            "http",
+            port=_args.port,
+            show_banner=False,
+            middleware=[
+                Middleware(
+                    CORSMiddleware,
+                    allow_origins=["*"],
+                    allow_methods=["*"],
+                    allow_headers=["*"],
+                    expose_headers=["Mcp-Session-Id"],
+                )
+            ],
+        )
     else:
         mcp.run("stdio", show_banner=False)
