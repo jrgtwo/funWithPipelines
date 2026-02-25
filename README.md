@@ -40,10 +40,22 @@ CORS is enabled for all origins, so browser-based clients can POST directly.
 
 ### Tools
 
-| Tool | Arguments | Description |
-|------|-----------|-------------|
-| `generate` | `prompt`, `max_new_tokens` (512), `temperature` (0.7), `top_p` (0.9) | Raw text completion — returns only the newly generated tokens. |
-| `chat` | `messages`, `max_new_tokens` (512), `temperature` (0.7), `top_p` (0.9) | Chat-style completion. `messages` is a list of `{"role": "...", "content": "..."}` objects with roles `system`, `user`, or `assistant`. |
+| Tool | Required | Optional | Description |
+|------|----------|----------|-------------|
+| `generate` | `prompt` | see below | Raw text completion — returns only the newly generated tokens. |
+| `chat` | `messages` | see below | Chat-style completion. `messages` is a list of `{"role": "...", "content": "..."}` objects with roles `system`, `user`, or `assistant`. |
+
+Both tools accept the same optional generation parameters:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `max_new_tokens` | `512` | Maximum number of tokens to generate. |
+| `temperature` | `0.7` | Sampling temperature. `0` = greedy (deterministic). Higher values increase randomness. |
+| `top_p` | `0.9` | Nucleus sampling — only tokens whose cumulative probability reaches `top_p` are considered. |
+| `top_k` | `0` | Limits sampling to the top-k most likely tokens. `0` = disabled. Combine with `top_p` for finer control. |
+| `repetition_penalty` | `1.0` | Penalises tokens that have already appeared. `1.0` = no penalty. Values like `1.1`–`1.3` noticeably reduce looping. |
+| `stop_sequences` | `null` | List of strings that immediately halt generation when produced (e.g. `["###", "User:"]`). |
+| `seed` | `null` | Integer RNG seed for reproducible outputs. Same seed + same inputs = same output. |
 
 ### Resources
 
@@ -65,14 +77,33 @@ async def main():
     async with Client("http://127.0.0.1:8000/mcp") as client:
         # Session is initialized automatically on __aenter__
 
-        # Call generate tool
+        # Basic generate call
         result = await client.call_tool(
             "generate",
             {"prompt": "The capital of France is", "max_new_tokens": 20},
         )
         print(result[0].text)
 
-        # Chat-style call
+        # Reproducible output with a seed
+        result = await client.call_tool(
+            "generate",
+            {"prompt": "Once upon a time", "max_new_tokens": 50, "seed": 42},
+        )
+        print(result[0].text)
+
+        # Reduce repetition and stop on a sentinel string
+        result = await client.call_tool(
+            "generate",
+            {
+                "prompt": "List three facts about the moon:",
+                "max_new_tokens": 200,
+                "repetition_penalty": 1.2,
+                "stop_sequences": ["4."],
+            },
+        )
+        print(result[0].text)
+
+        # Chat with tighter sampling (top_k + top_p together)
         result = await client.call_tool(
             "chat",
             {
@@ -80,6 +111,9 @@ async def main():
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": "What is 2 + 2?"},
                 ],
+                "temperature": 0.5,
+                "top_k": 50,
+                "top_p": 0.9,
             },
         )
         print(result[0].text)
@@ -130,7 +164,7 @@ curl -s -X POST http://127.0.0.1:8000/mcp \
 **Step 3 — Call a tool**
 
 ```bash
-# generate
+# generate (basic)
 curl -s -X POST http://127.0.0.1:8000/mcp \
   -H "Content-Type: application/json" \
   -H "Mcp-Session-Id: $SESSION" \
@@ -144,7 +178,7 @@ curl -s -X POST http://127.0.0.1:8000/mcp \
     }
   }'
 
-# chat
+# generate (with repetition penalty, stop sequence, and seed)
 curl -s -X POST http://127.0.0.1:8000/mcp \
   -H "Content-Type: application/json" \
   -H "Mcp-Session-Id: $SESSION" \
@@ -153,12 +187,35 @@ curl -s -X POST http://127.0.0.1:8000/mcp \
     "id": 3,
     "method": "tools/call",
     "params": {
+      "name": "generate",
+      "arguments": {
+        "prompt": "List three facts about the moon:",
+        "max_new_tokens": 200,
+        "repetition_penalty": 1.2,
+        "stop_sequences": ["4."],
+        "seed": 42
+      }
+    }
+  }'
+
+# chat (with top_k + top_p sampling)
+curl -s -X POST http://127.0.0.1:8000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Mcp-Session-Id: $SESSION" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "tools/call",
+    "params": {
       "name": "chat",
       "arguments": {
         "messages": [
           { "role": "system", "content": "You are a helpful assistant." },
           { "role": "user",   "content": "What is 2 + 2?" }
-        ]
+        ],
+        "temperature": 0.5,
+        "top_k": 50,
+        "top_p": 0.9
       }
     }
   }'

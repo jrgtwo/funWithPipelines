@@ -103,12 +103,21 @@ def _generate_tokens(
     max_new_tokens: int,
     temperature: float,
     top_p: float,
+    top_k: int = 0,
+    repetition_penalty: float = 1.0,
+    stop_sequences: list[str] | None = None,
+    seed: int | None = None,
 ) -> str:
     """Tokenise, run model.generate, decode only the new tokens."""
     model = _state.model
     tokenizer = _state.tokenizer
     if model is None or tokenizer is None:
         raise RuntimeError("Model is not loaded.")
+
+    if seed is not None:
+        torch.manual_seed(seed)
+        if _state.device == "cuda":
+            torch.cuda.manual_seed(seed)
 
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     input_len = inputs["input_ids"].shape[1]
@@ -122,6 +131,13 @@ def _generate_tokens(
     if do_sample:
         gen_kwargs["temperature"] = temperature
         gen_kwargs["top_p"] = top_p
+        if top_k > 0:
+            gen_kwargs["top_k"] = top_k
+    if repetition_penalty != 1.0:
+        gen_kwargs["repetition_penalty"] = repetition_penalty
+    if stop_sequences:
+        gen_kwargs["stop_strings"] = stop_sequences
+        gen_kwargs["tokenizer"] = tokenizer
 
     with torch.no_grad():
         output_ids = model.generate(**inputs, **gen_kwargs)
@@ -158,20 +174,31 @@ def generate(
     max_new_tokens: int = 512,
     temperature: float = 0.7,
     top_p: float = 0.9,
+    top_k: int = 0,
+    repetition_penalty: float = 1.0,
+    stop_sequences: list[str] | None = None,
+    seed: int | None = None,
 ) -> str:
     """
     Generate text from a raw prompt using the local LLM.
 
     Args:
-        prompt:         The input text to continue.
-        max_new_tokens: Maximum tokens to generate (default 512).
-        temperature:    Sampling temperature; 0 = greedy (default 0.7).
-        top_p:          Nucleus-sampling probability (default 0.9).
+        prompt:             The input text to continue.
+        max_new_tokens:     Maximum tokens to generate (default 512).
+        temperature:        Sampling temperature; 0 = greedy (default 0.7).
+        top_p:              Nucleus-sampling probability (default 0.9).
+        top_k:              Top-k vocabulary filtering; 0 = disabled (default 0).
+        repetition_penalty: Penalty for repeating tokens; 1.0 = no penalty (default 1.0).
+        stop_sequences:     List of strings that halt generation when produced.
+        seed:               RNG seed for reproducible outputs.
 
     Returns:
         The generated text (input prompt NOT included).
     """
-    return _generate_tokens(prompt, max_new_tokens, temperature, top_p)
+    return _generate_tokens(
+        prompt, max_new_tokens, temperature, top_p,
+        top_k, repetition_penalty, stop_sequences, seed,
+    )
 
 
 @mcp.tool()
@@ -180,22 +207,33 @@ def chat(
     max_new_tokens: int = 512,
     temperature: float = 0.7,
     top_p: float = 0.9,
+    top_k: int = 0,
+    repetition_penalty: float = 1.0,
+    stop_sequences: list[str] | None = None,
+    seed: int | None = None,
 ) -> str:
     """
     Chat with the local LLM using a conversation history.
 
     Args:
-        messages:       List of {"role": "...", "content": "..."} dicts.
-                        Roles: "system", "user", "assistant".
-        max_new_tokens: Maximum tokens to generate (default 512).
-        temperature:    Sampling temperature; 0 = greedy (default 0.7).
-        top_p:          Nucleus-sampling probability (default 0.9).
+        messages:           List of {"role": "...", "content": "..."} dicts.
+                            Roles: "system", "user", "assistant".
+        max_new_tokens:     Maximum tokens to generate (default 512).
+        temperature:        Sampling temperature; 0 = greedy (default 0.7).
+        top_p:              Nucleus-sampling probability (default 0.9).
+        top_k:              Top-k vocabulary filtering; 0 = disabled (default 0).
+        repetition_penalty: Penalty for repeating tokens; 1.0 = no penalty (default 1.0).
+        stop_sequences:     List of strings that halt generation when produced.
+        seed:               RNG seed for reproducible outputs.
 
     Returns:
         The assistant's reply as plain text.
     """
     prompt = _build_chat_prompt(messages)
-    return _generate_tokens(prompt, max_new_tokens, temperature, top_p)
+    return _generate_tokens(
+        prompt, max_new_tokens, temperature, top_p,
+        top_k, repetition_penalty, stop_sequences, seed,
+    )
 
 
 # ---------------------------------------------------------------------------
