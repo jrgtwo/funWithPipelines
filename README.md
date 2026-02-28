@@ -9,15 +9,10 @@ Create a `/models` folder to add your local models to
 ### install dependencies
 `pip install -r requirements.txt`
 
-### run
-`> cd src`
-`> python -m chat`
-
----
 
 ## MCP Server (`src/mcp/llm_server.py`)
 
-Exposes a local HuggingFace model as an [MCP](https://modelcontextprotocol.io) server with two tools (`generate`, `chat`) and one resource (`llm://info`).
+Exposes a local HuggingFace model as an [MCP](https://modelcontextprotocol.io) server with three tools (`generate`, `chat`, `get_weather`) and one resource (`llm://info`).
 
 ### Transports
 
@@ -44,8 +39,9 @@ CORS is enabled for all origins, so browser-based clients can POST directly.
 |------|----------|----------|-------------|
 | `generate` | `prompt` | see below | Raw text completion — returns only the newly generated tokens. |
 | `chat` | `messages` | see below | Chat-style completion. `messages` is a list of `{"role": "...", "content": "..."}` objects with roles `system`, `user`, or `assistant`. |
+| `get_weather` | `location` | `units` | Current weather for any city or region via [Open-Meteo](https://open-meteo.com). No API key required. |
 
-Both tools accept the same optional generation parameters:
+`generate` and `chat` accept the same optional generation parameters:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -56,6 +52,13 @@ Both tools accept the same optional generation parameters:
 | `repetition_penalty` | `1.0` | Penalises tokens that have already appeared. `1.0` = no penalty. Values like `1.1`–`1.3` noticeably reduce looping. |
 | `stop_sequences` | `null` | List of strings that immediately halt generation when produced (e.g. `["###", "User:"]`). |
 | `seed` | `null` | Integer RNG seed for reproducible outputs. Same seed + same inputs = same output. |
+
+`get_weather` accepts:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `location` | *(required)* | City name or region to look up (e.g. `"London"`, `"New York"`, `"Tokyo"`). |
+| `units` | `"metric"` | `"metric"` for °C / km/h, or `"imperial"` for °F / mph. |
 
 ### Resources
 
@@ -115,6 +118,20 @@ async def main():
                 "top_k": 50,
                 "top_p": 0.9,
             },
+        )
+        print(result[0].text)
+
+        # Current weather (metric)
+        result = await client.call_tool(
+            "get_weather",
+            {"location": "Tokyo"},
+        )
+        print(result[0].text)
+
+        # Current weather (imperial)
+        result = await client.call_tool(
+            "get_weather",
+            {"location": "New York", "units": "imperial"},
         )
         print(result[0].text)
 
@@ -217,6 +234,34 @@ curl -s -X POST http://127.0.0.1:8000/mcp \
         "top_k": 50,
         "top_p": 0.9
       }
+    }
+  }'
+
+# get_weather (metric, default)
+curl -s -X POST http://127.0.0.1:8000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Mcp-Session-Id: $SESSION" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "tools/call",
+    "params": {
+      "name": "get_weather",
+      "arguments": { "location": "Tokyo" }
+    }
+  }'
+
+# get_weather (imperial)
+curl -s -X POST http://127.0.0.1:8000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Mcp-Session-Id: $SESSION" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "tools/call",
+    "params": {
+      "name": "get_weather",
+      "arguments": { "location": "New York", "units": "imperial" }
     }
   }'
 ```
